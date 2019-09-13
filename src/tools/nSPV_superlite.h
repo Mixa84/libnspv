@@ -900,15 +900,12 @@ cJSON *NSPV_broadcast(btc_spv_client *client,char *hex)
     return(NSPV_broadcast_json(&B,txid));
 }
 
-cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *params)
+cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *request)
 {
     uint8_t msg[512]; int32_t i,iter,len = 1,slen;
-    cJSON *request = cJSON_CreateObject();
     char *pubkey=utils_uint8_to_hex(NSPV_pubkey.pubkey,33);
 
-    jaddstr(request,"method",method);
-    jaddstr(params,"mypk",pubkey);
-    jaddi(request,params);    
+    jaddstr(jarray(&i,request,"params"),"mypk",pubkey);   
     NSPV_remoterpc_purge(&NSPV_remoterpcresult);
     msg[len++] = NSPV_REMOTERPC;
     char *json=jprint(request,0);
@@ -1494,7 +1491,7 @@ cJSON *_NSPV_JSON(cJSON *argjson)
         }
         return(NSPV_mempooltxids(NSPV_client,coinaddr,CCflag,memfunc,txid,vout));
     }
-    else if ((result=NSPV_remoterpccall(NSPV_client,method,params))!=NULL)
+    else if ((result=NSPV_remoterpccall(NSPV_client,method,argjson))!=NULL)
         return (result);
     else
         return(cJSON_Parse("{\"error\":\"invalid method\"}"));
