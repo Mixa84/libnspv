@@ -905,10 +905,11 @@ cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *request)
     uint8_t msg[512]; int32_t i,iter,len = 1,slen;
     char *pubkey=utils_uint8_to_hex(NSPV_pubkey.pubkey,33);
 
-    jaddstr(jarray(&i,request,"params"),"mypk",pubkey);   
+    jaddistr(jarray(&i,request,"params"),pubkey);   
     NSPV_remoterpc_purge(&NSPV_remoterpcresult);
     msg[len++] = NSPV_REMOTERPC;
     char *json=jprint(request,0);
+    printf("%s\n",json);
     slen = (int32_t)strlen(json);
     msg[len++] = slen;
     memcpy(&msg[len],json,slen), len += slen;
