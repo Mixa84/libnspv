@@ -909,7 +909,6 @@ cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *request)
     NSPV_remoterpc_purge(&NSPV_remoterpcresult);
     msg[len++] = NSPV_REMOTERPC;
     char *json=jprint(request,0);
-    printf("%s\n",json);
     slen = (int32_t)strlen(json);
     msg[len++] = slen;
     memcpy(&msg[len],json,slen), len += slen;
