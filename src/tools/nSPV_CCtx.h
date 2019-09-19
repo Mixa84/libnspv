@@ -24,35 +24,49 @@
 // please make a new way of doing CC tx that wont lead to complaints later. let us start with faucetget
 
 extern bool NSPV_SignTx(btc_tx *mtx,int32_t vini,int64_t utxovalue,cstring *scriptPubKey,uint32_t nTime);
-
 #define FAUCETSIZE (COIN / 10)
 
-cstring *FinalizeCCtx(btc_spv_client *client, cstring *hex, vector *sigData )
+cstring *FinalizeCCtx(btc_spv_client *client, cJSON *txdata )
 {
-    int32_t i,n; cstring *finalHex;
-    btc_tx *mtx=btc_tx_decodehex(hex->str);
-    n=sigData->len;
+    int32_t i,n,k,vini; cstring *finalHex,*voutScriptPubkey; cJSON *sigData; char error[256]; int64_t voutValue; CC *cond;
+    btc_tx *mtx=btc_tx_decodehex(jstr(txdata,"hex"));
+    sigData=jarray(&n,txdata,"SigData");
     for (i=0; i<n; i++)
     {
-        CCSigData *sData=vector_idx(sigData,1);
-        btc_tx_in *vin=btc_tx_vin(mtx,sData->vini);
-        bits256 sigHash;
-        
-        if (sData->isCC)
+        cJSON *item=jitem(sigData,i);
+        vini=jint(item,"vin");
+        voutValue=jint(item,"amount");
+        if (cJSON_HasObjectItem(item,"cc")!=0)
         {
-            cstring *script=CCPubKey(sData->cond);
-            sigHash=NSPV_sapling_sighash(mtx,sData->vini,sData->voutValue,(unsigned char *)script->str,script->len);
-            if (cc_signTreeSecp256k1Msg32(sData->cond,NSPV_key.privkey,sigHash.bytes)!=0)
-                CCSig(sData->cond,vin->script_sig);
+            btc_tx_in *vin=btc_tx_vin(mtx,vini);
+            bits256 sigHash;
+            memset(error,0,256);
+            cond=cc_conditionFromJSON(jobj(item,"cc"),error);
+            if (cond==NULL || error[0])
+            {
+                return cstr_new(error);
+            }
+            cstring *script=CCPubKey(cond);
+            sigHash=NSPV_sapling_sighash(mtx,vini,voutValue,(unsigned char *)script->str,script->len);
+            sigHash=bits256_rev(sigHash);
+            if ((k=cc_signTreeSecp256k1Msg32(cond,NSPV_key.privkey,sigHash.bytes))!=0)
+            {
+                CCSig(cond,vin->script_sig);
+            }
             cstr_free(script,1);
+            cc_free(cond);
         }
         else
-        {
-            NSPV_SignTx(mtx,sData->vini,sData->voutValue,sData->voutScriptPubkey,0);
+        {            
+            voutScriptPubkey=cstr_new((char *)utils_hex_to_uint8(jstr(item,"scriptPubKey")));
+            if (NSPV_SignTx(mtx,vini,voutValue,voutScriptPubkey,0)==0)
+            {
+                fprintf(stderr,"signing error for vini.%d\n",vini);
+                return(cstr_new(""));
+            }
         }        
     }
     finalHex=btc_tx_to_cstr(mtx);
-    vector_free(sigData,true);
     btc_tx_free(mtx);
     return (finalHex);
 }

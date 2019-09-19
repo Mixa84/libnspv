@@ -1370,7 +1370,7 @@ void NSPV_argjson_addfields(char *method,cJSON *argjson,cJSON *params)
 cJSON *_NSPV_JSON(cJSON *argjson)
 {
     char *method; bits256 txid; int64_t satoshis; char *symbol,*coinaddr,*wifstr,*hex;
-    int32_t vout,prevheight,nextheight,skipcount,height,hdrheight,numargs; uint8_t CCflag,memfunc; cJSON *params,*result;
+    int32_t vout,prevheight,nextheight,skipcount,height,hdrheight,numargs; uint8_t CCflag,memfunc; cJSON *params,*result,*req;
 //fprintf(stderr,"_NEW_JSON.(%s)\n",jprint(argjson,0));
     if ( (method= jstr(argjson,"method")) == 0 )
         return(cJSON_Parse("{\"error\":\"no method\"}"));
@@ -1491,8 +1491,21 @@ cJSON *_NSPV_JSON(cJSON *argjson)
         }
         return(NSPV_mempooltxids(NSPV_client,coinaddr,CCflag,memfunc,txid,vout));
     }
-    else if ((result=NSPV_remoterpccall(NSPV_client,method,argjson))!=NULL)
-        return (result);
+    else if ((req=NSPV_remoterpccall(NSPV_client,method,argjson))!=NULL)
+    {
+        cJSON *result=jobj(req,"result");
+        if (result!=NULL && strcmp(jstr(result,"result"),"success")==0 && (jstr(result,"hex"))!=0 && jobj(result,"SigData")!=NULL)
+        {     
+            cstring *hex=FinalizeCCtx(NSPV_client,result);
+            result=cJSON_CreateObject();
+            jaddstr(result,"result","success");
+            jaddstr(result,"hex",hex->str);
+            cstr_free(hex,1);
+            cJSON_free(req);  
+            return(result);
+        }
+        else return (req);
+    }
     else
         return(cJSON_Parse("{\"error\":\"invalid method\"}"));
 }

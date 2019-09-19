@@ -106,12 +106,12 @@ CC *MakeCCcond1of2(uint8_t evalcode,uint8_t *pk1, uint8_t *pk2)
 void SerializeScript(cstring *script,unsigned char* buf, size_t len)
 {
     if (len < OP_PUSHDATA1) ser_varlen(script,len);
-    else if (len < 0xFF)
+    else if (len <= 0xFF)
     {
         ser_varlen(script,OP_PUSHDATA1);
         ser_bytes(script,&len,1);
     }
-    else if (len < 0xFFFF)
+    else if (len <= 0xFFFF)
     {
         ser_varlen(script,OP_PUSHDATA2);
         ser_u16(script,len);
@@ -180,9 +180,8 @@ void CCSig(const CC *cond,cstring *script)
 {
     unsigned char buf[10000];
     size_t len = cc_fulfillmentBinary(cond, buf, 10000);
+    buf[len++]=SIGHASH_ALL;
     SerializeScript(script,buf,len);
-    unsigned char c=SIGHASH_ALL;
-    ser_bytes(script,&c,1);
     return;
 }
 
