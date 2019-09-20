@@ -1160,7 +1160,6 @@ int32_t iguana_socket(int32_t bindflag,char *hostname,uint16_t port)
     int32_t opt,sock,result; char ipaddr[64],checkipaddr[64]; struct timeval timeout;
     struct sockaddr_in saddr; socklen_t addrlen,slen;
     addrlen = sizeof(saddr);
-    struct hostent *hostent;
     
     /**
      * gethostbyname() is deprecated and cause crash on x64 windows
@@ -1168,8 +1167,6 @@ int32_t iguana_socket(int32_t bindflag,char *hostname,uint16_t port)
      * it is standard posix function and is correctly supported in win32/win64/linux
      * @author - fadedreamz@gmail.com
      */
-    
-#if defined(_M_X64)
     struct addrinfo *addrresult = NULL;
     struct addrinfo *returnptr = NULL;
     struct addrinfo hints;
@@ -1180,12 +1177,10 @@ int32_t iguana_socket(int32_t bindflag,char *hostname,uint16_t port)
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
-#endif
     
     if ( parse_ipaddr(ipaddr,hostname) != 0 )
         port = parse_ipaddr(ipaddr,hostname);
     
-#if defined(_M_X64)
     retVal = getaddrinfo(ipaddr, NULL, &hints, &addrresult);
     for (returnptr = addrresult; returnptr != NULL && found == 0; returnptr = returnptr->ai_next) {
         switch (returnptr->ai_family) {
@@ -1204,28 +1199,16 @@ int32_t iguana_socket(int32_t bindflag,char *hostname,uint16_t port)
         freeaddrinfo(addrresult);
         return(-1);
     }
-#else
-    hostent = gethostbyname(ipaddr);
-    if ( hostent == NULL )
-    {
-        printf("gethostbyname(%s) returned error: %d port.%d ipaddr.(%s)\n",hostname,errno,port,ipaddr);
-        return(-1);
-    }
-#endif
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(port);
     //#ifdef _WIN32
     //   saddr.sin_addr.s_addr = (uint32_t)calc_ipbits("127.0.0.1");
     //#else
     
-#if defined(_M_X64)
     saddr.sin_addr.s_addr = sockaddr_ipv4->sin_addr.s_addr;
     // graceful cleanup
     sockaddr_ipv4 = NULL;
-    freeaddrinfo(addrresult);
-#else
-    memcpy(&saddr.sin_addr.s_addr,hostent->h_addr_list[0],hostent->h_length);
-#endif
+    freeaddrinfo(addrresult); 
     expand_ipbits(checkipaddr,saddr.sin_addr.s_addr);
     if ( strcmp(ipaddr,checkipaddr) != 0 )
         printf("bindflag.%d iguana_socket mismatch (%s) -> (%s)?\n",bindflag,checkipaddr,ipaddr);

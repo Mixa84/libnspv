@@ -430,6 +430,7 @@ bool NSPV_SignTx(btc_tx *mtx,int32_t vini,int64_t utxovalue,cstring *scriptPubKe
         if ( scriptPubKey->len == 25 )
             extralen = 34;
         else extralen = 0;
+        if (vin->script_sig) cstr_free(vin->script_sig,1);
         vin->script_sig = cstr_new_sz(siglen+2+extralen);
         vin->script_sig->str[0] = siglen+1;
         memcpy(vin->script_sig->str+1,sig,siglen);

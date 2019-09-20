@@ -908,10 +908,12 @@ cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *request)
     jaddistr(jarray(&i,request,"params"),pubkey);   
     NSPV_remoterpc_purge(&NSPV_remoterpcresult);
     msg[len++] = NSPV_REMOTERPC;
-    char *json=jprint(request,0);
+    char *json=cJSON_Print(request);
+    if (!json) return (NULL);
     slen = (int32_t)strlen(json);
     msg[len++] = slen;
     memcpy(&msg[len],json,slen), len += slen;
+    free(json);
     for (iter=0; iter<3; iter++)
     if ( NSPV_req(client,0,msg,len,NODE_NSPV,NSPV_REMOTERPC>>1) != 0 )
     {
@@ -919,10 +921,13 @@ cJSON *NSPV_remoterpccall(btc_spv_client *client, char* method, cJSON *request)
         {
             usleep(NSPV_POLLMICROS);
             if ( strcmp(NSPV_remoterpcresult.method,method) == 0)
-                return(cJSON_Parse(NSPV_remoterpcresult.json));
+            {
+                cJSON *result=cJSON_Parse(NSPV_remoterpcresult.json);
+                NSPV_remoterpc_purge(&NSPV_remoterpcresult);
+                return(result);
+            }
         }
     } else sleep(1);
-    cJSON_free(request);
     return (NULL);
 }
 
@@ -974,7 +979,9 @@ cJSON *NSPV_login(const btc_chainparams *chain,char *wifstr)
     jaddstr(result,"pubkey",NSPV_pubkeystr);
     jaddnum(result,"wifprefix",(int64_t)data[0]);
     jaddnum(result,"compressed",(int64_t)(data[sz-5] == 1));
-    fprintf(stderr,"result (%s)\n",jprint(result,0));
+    char *res=jprint(result,0);
+    fprintf(stderr,"result (%s)\n",res);
+    free(res);
     memset(data,0,sizeof(data));
     return(result);
 }
@@ -1364,7 +1371,7 @@ void NSPV_argjson_addfields(char *method,cJSON *argjson,cJSON *params)
             }
         }
     }
-    fprintf(stderr,"new argjson.(%s)\n",jprint(argjson,0));
+    //fprintf(stderr,"new argjson.(%s)\n",cJSON_Print(argjson));
 }
 
 cJSON *_NSPV_JSON(cJSON *argjson)
@@ -1501,7 +1508,7 @@ cJSON *_NSPV_JSON(cJSON *argjson)
             jaddstr(result,"result","success");
             jaddstr(result,"hex",hex->str);
             cstr_free(hex,1);
-            cJSON_free(req);  
+            cJSON_Delete(req);  
             return(result);
         }
         else return (req);

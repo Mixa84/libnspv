@@ -136,6 +136,15 @@ cstring* CCPubKey(const CC *cond)
     return ccpk;
 }
 
+void CCSig(const CC *cond,cstring *script)
+{
+    unsigned char buf[10001];
+    size_t len = cc_fulfillmentBinary(cond, buf, 10000);
+    buf[len++]=SIGHASH_ALL;
+    SerializeScript(script,buf,len);
+    return;
+}
+
 btc_tx_out *MakeCC1vout(uint8_t evalcode, uint64_t nValue,uint8_t *pk)
 {
     CC *payoutCond = MakeCCcond1(evalcode,pk);
@@ -174,15 +183,6 @@ btc_pubkey *CCtxidaddr(btc_spv_client *client,btc_pubkey *pk,char *txidaddr,uint
     buf2pk(pk,buf33);
     btc_pubkey_getaddr_p2pkh(pk,client->chainparams,txidaddr);
     return(pk);
-}
-
-void CCSig(const CC *cond,cstring *script)
-{
-    unsigned char buf[10000];
-    size_t len = cc_fulfillmentBinary(cond, buf, 10000);
-    buf[len++]=SIGHASH_ALL;
-    SerializeScript(script,buf,len);
-    return;
 }
 
 bool IsPayToCryptoCondition(cstring *script)
