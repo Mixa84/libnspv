@@ -1501,7 +1501,7 @@ cJSON *_NSPV_JSON(cJSON *argjson)
     else if ((req=NSPV_remoterpccall(NSPV_client,method,argjson))!=NULL)
     {
         cJSON *result=jobj(req,"result");
-        if (result!=NULL && strcmp(jstr(result,"result"),"success")==0 && (jstr(result,"hex"))!=0 && jobj(result,"SigData")!=NULL)
+        if (!cJSON_IsNull(result) && strcmp(jstr(result,"result"),"success")==0 && (jstr(result,"hex"))!=0 && jobj(result,"SigData")!=NULL)
         {     
             cstring *hex=FinalizeCCtx(NSPV_client,result);
             result=cJSON_CreateObject();

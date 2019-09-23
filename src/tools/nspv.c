@@ -377,7 +377,6 @@ int main(int argc, char* argv[])
         printf("Invalid command (use -?)\n");
         ret = EXIT_FAILURE;
     }
-    if (chain) free(chain);
     pthread_join(thread,NULL);
     return ret;
 }
