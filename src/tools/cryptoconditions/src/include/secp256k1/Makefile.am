@@ -71,7 +71,7 @@ endif
 endif
 
 libsecp256k1_la_SOURCES = src/secp256k1.c
-libsecp256k1_la_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES) -g
+libsecp256k1_la_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/include -I$(top_srcdir)/src $(SECP_INCLUDES) -march=x86-64 -g
 libsecp256k1_la_LIBADD = $(JNI_LIB) $(SECP_LIBS) $(COMMON_LIB)
 
 libsecp256k1_jni_la_SOURCES  = src/java/org_bitcoin_NativeSecp256k1.c src/java/org_bitcoin_Secp256k1Context.c
@@ -90,17 +90,17 @@ bench_internal_CPPFLAGS = -DSECP256K1_BUILD $(SECP_INCLUDES)
 endif
 
 TESTS =
-#if USE_TESTS
-#noinst_PROGRAMS += tests
-#tests_SOURCES = src/tests.c
-#tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src -I$(top_srcdir)/include $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
-#if !ENABLE_COVERAGE
-#tests_CPPFLAGS += -DVERIFY
-#endif
-#tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
-#tests_LDFLAGS = -static
-#TESTS += tests
-#endif
+if USE_TESTS
+noinst_PROGRAMS += tests
+tests_SOURCES = src/tests.c
+tests_CPPFLAGS = -DSECP256K1_BUILD -I$(top_srcdir)/src -I$(top_srcdir)/include $(SECP_INCLUDES) $(SECP_TEST_INCLUDES)
+if !ENABLE_COVERAGE
+tests_CPPFLAGS += -DVERIFY
+endif
+tests_LDADD = $(SECP_LIBS) $(SECP_TEST_LIBS) $(COMMON_LIB)
+tests_LDFLAGS = -static
+TESTS += tests
+endif
 
 if USE_EXHAUSTIVE_TESTS
 noinst_PROGRAMS += exhaustive_tests
@@ -136,17 +136,17 @@ $(JAVA_GUAVA):
 	$(AM_V_at)$(CLASSPATH_ENV) javac $^
 	@touch $@
 
-#if USE_TESTS
-#
-#check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
-#	$(AM_V_at)java -Djava.library.path="./:./src:./src/.libs:.libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1Test
-#
-#endif
+if USE_TESTS
+
+check-java: libsecp256k1.la $(JAVA_GUAVA) .stamp-java
+	$(AM_V_at)java -Djava.library.path="./:./src:./src/.libs:.libs/" -cp "$(JAVA_GUAVA):$(JAVAROOT)" $(JAVAORG)/NativeSecp256k1Test
+
+endif
 endif
 
 if USE_ECMULT_STATIC_PRECOMPUTATION
-CPPFLAGS_FOR_BUILD =-I$(top_srcdir)
-CFLAGS_FOR_BUILD = -Wall -Wextra -Wno-unused-function
+CPPFLAGS_FOR_BUILD +=-I$(top_srcdir)
+CFLAGS_FOR_BUILD += -Wall -Wextra -Wno-unused-function
 
 gen_context_OBJECTS = gen_context.o
 gen_context_BIN = gen_context$(BUILD_EXEEXT)
