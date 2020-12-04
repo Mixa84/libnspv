@@ -86,7 +86,7 @@ cstring* FinalizeCCtx(/*btc_spv_client* client,*/ cJSON* txdata, char* errorout)
                 }
                 return NULL;
             }
-            cstring* script = CCPubKey(cond);
+            cstring* script = CCPubKey(cond,false);
 
             uint8_t privkey[32];
             if (cJSON_HasObjectItem(item, "globalPrivKey") != 0) {
