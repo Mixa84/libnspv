@@ -127,6 +127,9 @@ struct rpcrequest_info {
 
 #define COIN SATOSHIDEN
 
+#define FINALIZECCTX_NO_CHANGE 0x1
+#define FINALIZECCTX_NO_CHANGE_WHEN_ZERO 0x2
+
 struct NSPV_equihdr {
     int32_t nVersion;
     bits256 hashPrevBlock;
@@ -301,7 +304,8 @@ void* NSPV_rpcloop(void* args);
 
 bool NSPV_SignTx(btc_tx* mtx, int32_t vini, int64_t utxovalue, cstring* scriptPubKey, uint32_t nTime);
 
-cstring* FinalizeCCtx(/*btc_spv_client* client,*/ cJSON* txdata, char* errorout /*=NSPV_MAXERRORLEN*/);
+// cJSON* FinalizeCCtx(struct CCcontract_info *cp, btc_tx *mtx, btc_pubkey *mypk, uint64_t txfee, cstring *opret);
+cstring* FinalizeCCtxRemote(/*btc_spv_client* client,*/ cJSON* txdata, char* errorout /*=NSPV_MAXERRORLEN*/);
 btc_tx* btc_tx_decodehex(char* hexstr);
 cstring* btc_tx_to_cstr(btc_tx* tx);
 void reverse_hexstr(char* str);

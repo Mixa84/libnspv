@@ -696,20 +696,18 @@ cJSON *NSPV_spend(btc_spv_client *client,char *srcaddr,char *destaddr,int64_t sa
     return(0);
 }
 
-#ifdef SUPPORT_CC
-int64_t NSPV_AddNormalinputs(CMutableTransaction &mtx,CPubKey mypk,int64_t total,int32_t maxinputs,struct NSPV_CCmtxinfo *ptr)
+int64_t NSPV_AddNormalinputs(btc_spv_client *client,btc_tx *mtx,int64_t total,int32_t maxinputs,struct NSPV_CCmtxinfo *ptr)
 {
     char coinaddr[64]; int32_t CCflag = 0;
     if ( ptr != 0 )
     {
-        mtx.fOverwintered = true;
-        mtx.nExpiryHeight = 0;
-        mtx.nVersionGroupId = SAPLING_VERSION_GROUP_ID;
-        mtx.nVersion = SAPLING_TX_VERSION;
-        Getscriptaddress(coinaddr,CScript() << ParseHex(HexStr(mypk)) << OP_CHECKSIG);
-        if ( strcmp(ptr->U.coinaddr,coinaddr) != 0 )
+        //mtx->fOverwintered = true;
+        mtx->nExpiryHeight = 0;
+        mtx->nVersionGroupId = SAPLING_VERSION_GROUP_ID;
+        mtx->version = SAPLING_TX_VERSION;
+        if ( strcmp(ptr->U.coinaddr,NSPV_address) != 0 )
         {
-            NSPV_addressutxos(1,coinaddr,CCflag,0,0);
+            NSPV_addressutxos(1,client,coinaddr,CCflag,0,0);
             NSPV_utxosresp_purge(&ptr->U);
             NSPV_utxosresp_copy(&ptr->U,&NSPV_utxosresult);
         }
@@ -718,7 +716,7 @@ int64_t NSPV_AddNormalinputs(CMutableTransaction &mtx,CPubKey mypk,int64_t total
         return(NSPV_addinputs(ptr->used,mtx,total,maxinputs,ptr->U.utxos,ptr->U.numutxos));
     } else return(0);
 }
-
+#ifdef SUPPORT_CC
 void NSPV_utxos2CCunspents(struct NSPV_utxosresp *ptr,std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue> > &outputs)
 {
     CAddressUnspentKey key; CAddressUnspentValue value; int32_t i,type; uint160 hashBytes; std::string addrstr(ptr->coinaddr);

@@ -30,6 +30,7 @@
 #include <btc/utils.h>
 
 #include "nSPV_defs.h"
+#include "ccrpcs/nSPV_cc.h"
 
 extern char* NSPV_externalip;
 static uint32_t starttime = 0;
@@ -1570,28 +1571,38 @@ cJSON* NSPV_JSON_process(cJSON* argjson)
             vout = ((uint16_t)f << 8) | e;
         }
         return (NSPV_mempooltxids(NSPV_client, coinaddr, CCflag, memfunc, txid, vout));
-    } else if ((req = NSPV_remoterpccall(NSPV_client, method, argjson)) != NULL) {
-        cJSON* result = jobj(req, "result");
-        if (!cJSON_IsNull(result) && cJSON_HasObjectItem(result, "result") && strcmp(jstr(result, "result"), "success") == 0 && (jstr(result, "hex")) != 0 && jobj(result, "SigData") != NULL) {
-            char error[NSPV_MAXERRORLEN];
-            cstring *hex=FinalizeCCtx(result, error);
-            result=cJSON_CreateObject();
-            if (hex != NULL)
-            {
-                jaddstr(result, "result", "success");
-                jaddstr(result, "hex", hex->str);
-                cstr_free(hex, 1);
-            }
-            else
-            {
-                jaddstr(result, "result", "error");
-                jaddstr(result, "error", error);
-            }
-            cJSON_Delete(req);  
-            return(result);
+    } else if (strcmp(method, "channelsopen") == 0) {
+        if (memfunc == NSPV_MEMPOOL_CCEVALCODE) {
+            uint8_t e, f;
+            e = juint(argjson, "evalcode");
+            f = juint(argjson, "CCfunc");
+            vout = ((uint16_t)f << 8) | e;
         }
-        else return (req);
-    }
+        bits256 tokenid; btc_pubkey *destpub;
+        return (channelsopen(NSPV_client,destpub,0,0,0,tokenid));
+    } 
+    // else if ((req = NSPV_remoterpccall(NSPV_client, method, argjson)) != NULL) {
+    //     cJSON* result = jobj(req, "result");
+    //     if (!cJSON_IsNull(result) && cJSON_HasObjectItem(result, "result") && strcmp(jstr(result, "result"), "success") == 0 && (jstr(result, "hex")) != 0 && jobj(result, "SigData") != NULL) {
+    //         char error[NSPV_MAXERRORLEN];
+    //         cstring *hex=FinalizeCCtx(result, error);
+    //         result=cJSON_CreateObject();
+    //         if (hex != NULL)
+    //         {
+    //             jaddstr(result, "result", "success");
+    //             jaddstr(result, "hex", hex->str);
+    //             cstr_free(hex, 1);
+    //         }
+    //         else
+    //         {
+    //             jaddstr(result, "result", "error");
+    //             jaddstr(result, "error", error);
+    //         }
+    //         cJSON_Delete(req);  
+    //         return(result);
+    //     }
+    //     else return (req);
+    // }
     else
         return(cJSON_Parse("{\"error\":\"invalid method\"}"));
 }

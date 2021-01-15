@@ -137,7 +137,6 @@ void spv_sync_completed(btc_spv_client* client)
 }
 
 #include "curve25519.c"
-#include "nSPV_CCtx.h"
 #include "nSPV_structs.h"
 #include "nSPV_utils.h"
 #include "tweetnacl.c"

@@ -7,12 +7,6 @@
 #define CC_MAXVINS 1024
 #define WORDS_BIGENDIAN 1
 
-#define EVAL_FAUCET (0xe4)
-const char* FaucetCCaddr = "R9zHrofhRbub7ER77B7NrVch3A63R39GuC";
-const char* FaucetNormaladdr = "RKQV4oYs4rvxAWx1J43VnT73rSTVtUeckk";
-char FaucetCChexstr[67] = {"03682b255c40d0cde8faee381a1a50bbb89980ff24539cb8518e294d3a63cefe12"};
-uint8_t FaucetCCpriv[32] = {0xd4, 0x4f, 0xf2, 0x31, 0x71, 0x7d, 0x28, 0x02, 0x4b, 0xc7, 0xdd, 0x71, 0xa0, 0x39, 0xc4, 0xbe, 0x1a, 0xfe, 0xeb, 0xc2, 0x46, 0xda, 0x76, 0xf8, 0x07, 0x53, 0x3d, 0x96, 0xb4, 0xca, 0xa0, 0xe9};
-
 struct CCcontract_info
 {
     uint8_t evalcode;  //!< cc contract eval code, set by CCinit function
@@ -31,6 +25,13 @@ typedef struct _CCSigData {
     bool isCC;
 } CCSigData;
 
+struct CCcontract_info *CCinit(struct CCcontract_info *cp, uint8_t evalcode)
+{
+    // memset(cp, '\0', sizeof(*cp)); <-- it is not good to initialize objects like this. 
+	// special init func now used:
+
+    cp->evalcode = evalcode;
+}
 
 void endiancpy(uint8_t* dest, uint8_t* src, int32_t len)
 {
@@ -41,6 +42,49 @@ void endiancpy(uint8_t* dest, uint8_t* src, int32_t len)
 #else
     memcpy(dest, src, len);
 #endif
+}
+
+bits256 HashEntropy(bits256 _txidpriv,uint32_t vout,int32_t usevout)
+{
+    int32_t i; uint8_t _entropy[32],_hentropy[32]; bits256 tmp256,txidpub,txidpriv,mypriv,mypub,ssecret,ssecret2; uint256 hentropy;
+
+    memset(&hentropy,0,32);
+    endiancpy(txidpriv.bytes,_txidpriv.bytes,32);
+    if ( usevout != 0 )
+    {
+        txidpriv.bytes[1] ^= (vout & 0xff);
+        txidpriv.bytes[2] ^= ((vout>>8) & 0xff);
+    }
+    txidpriv.bytes[0] &= 0xf8, txidpriv.bytes[31] &= 0x7f, txidpriv.bytes[31] |= 0x40;
+    txidpub = curve25519(txidpriv,curve25519_basepoint9());
+
+    memcpy(tmp256.bytes, NSPV_key.privkey, sizeof(tmp256.bytes));
+    vcalc_sha256(0,mypriv.bytes,tmp256.bytes,32);
+    mypriv.bytes[0] &= 0xf8, mypriv.bytes[31] &= 0x7f, mypriv.bytes[31] |= 0x40;
+    mypub = curve25519(mypriv,curve25519_basepoint9());
+
+    ssecret = curve25519(mypriv,txidpub);
+    ssecret2 = curve25519(txidpriv,mypub);
+    if ( memcmp(ssecret.bytes,ssecret2.bytes,32) == 0 )
+    {
+        vcalc_sha256(0,(uint8_t *)&_entropy,ssecret.bytes,32);
+        vcalc_sha256(0,(uint8_t *)&_hentropy,_entropy,32);
+        for (i=0; i<32; i++)
+            fprintf(stderr,"%02x",_hentropy[i]);
+        endiancpy((uint8_t *)&hentropy,_hentropy,32);
+    }
+    else
+    {
+        for (i=0; i<32; i++)
+            fprintf(stderr,"%02x",ssecret.bytes[i]);
+        fprintf(stderr," ssecret\n");
+        for (i=0; i<32; i++)
+            fprintf(stderr,"%02x",ssecret2.bytes[i]);
+        fprintf(stderr," ssecret2 dont match\n");
+        fprintf(stderr,"\n");
+    }
+    memcpy(tmp256.bytes,hentropy,32);
+    return (tmp256);
 }
 
 CC* CCNewEval(char* code, int32_t size)
@@ -327,6 +371,15 @@ bool IsTxCCV2(struct CCcontract_info const *cp, btc_tx *tx)
         if (IsPayToCryptoCondition(vout->script_pubkey,true)) return (true);
     } 
     return (false);
+}
+
+cJSON *ccerror(char * module, char * text)
+{
+    cJSON *result=cJSON_CreateObject();
+    jaddstr(result,"result","error");
+    jaddstr(result,"error", text);
+
+    return (result);
 }
 
 #endif // NSPV_CCUTILS_H

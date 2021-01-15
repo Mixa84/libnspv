@@ -1,4 +1,13 @@
 [
+   {
+    "coin": "CCV2",
+    "asset": "CCV2",
+    "fname": "CCV2",
+    "rpcport": 30999,
+    "p2p": "30998",
+    "magic": "76ea0e43",
+    "nSPV": "192.168.1.41"
+  },
   {
     "coin": "BTC",
     "name": "bitcoin",
